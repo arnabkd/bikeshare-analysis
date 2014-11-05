@@ -1,4 +1,4 @@
-import sys, glob, random, time, datetime
+import sys, glob, random, time, datetime, os
 from datautils import *
 import matplotlib.pyplot as plt
 from classifier_functions import *
@@ -18,6 +18,9 @@ img_names = []
 
 
 def visualize(data_path, station_IDs=None):
+  """
+  visualize the traffic of a bike-share station.
+  """
   data,features = get_bikeshare_data(['epoch'], ['id'], [], data_path, regression_mode=True)
   if station_IDs is None or len(station_IDs) < 1:
     station_IDs = [random.randint(0, max(data[:,1])) for x in range(10)]
@@ -43,6 +46,7 @@ def visualize(data_path, station_IDs=None):
   plt.show()
 
 def visualize_all(data_path):
+
   data,features = get_bikeshare_data(['epoch'], ['id'], [], data_path, regression_mode=True)
   plt.plot(data[:,0],data[:,2])
   plt.xlabel("Time")
@@ -55,6 +59,9 @@ def visualize_all(data_path):
 
 
 def filter_station(X, id_index, station_ID, y=None):
+  """
+  Filter a dataset to only contain data from a certain station
+  """
   station_ytrain = []
   station_Xtrain = []
 
@@ -72,6 +79,9 @@ def filter_station(X, id_index, station_ID, y=None):
   return np.array(station_Xtrain)
 
 def filter_similar(X, id_index, y, similar_stations):
+  """
+  Filter a dataset to only contain data from the stations in the similar_stations list
+  """
   similar_Xtrain = []
   similar_ytrain = []
   
@@ -140,11 +150,14 @@ def visualize_prediction(estimator, est_label, X_train, y_train, X_test, y_test,
     features = [feature for feature,_ in feature_importances]
     importances = [importance for _,importance in feature_importances]
 
+    if not os.path.exists("bin/"):
+      os.mkdir("bin/")
+
     with open(("bin/feature_importances_%s.csv"%est_label), "wb") as f:
-      #print "created new file %s" %str(f)
       writer = csv.writer(f)
       #print "created writer object"
       writer.writerows(izip(features, importances))
+      print "Feature importances saved to file: %s" %str(f)
   except:
     print "Something went wrong while showing feature importances"
   plt.show()
@@ -153,6 +166,9 @@ def visualize_prediction(estimator, est_label, X_train, y_train, X_test, y_test,
 
 
 def prune_target_col(data, target_col):
+  """
+  Remove the target column of a dataset
+  """
   #print "Removing index %s of %s " %(target_col, len(data[0])-1)
   y = np.copy(data[:,target_col])
   empty_col = np.array([0 for i in range(len(data[:,target_col]))])
@@ -160,10 +176,16 @@ def prune_target_col(data, target_col):
   return data
 
 def get_target(data, target_col):
+  """
+  Returns a numpy array containing the target column of a dataset
+  """
   return np.copy(data[:,target_col])
 
 
 def create_train_test_split(X, y, split):
+  """
+  Create a train-test split in the data using the split variable as the ratio
+  """
   if split > 99 or split < 1: 
     print "Error: The split must be between 1 and 100"
     return
@@ -261,6 +283,9 @@ def find_min(val_lists):
   return np.min([np.min(val_list) for val_list in val_lists])
  
 def padding(val_lists, p=None):
+  """
+  Used to find the optimal padding for a prediction plot
+  """
   if p is None:
     p = 0.1
   min_val = find_min(val_lists)
@@ -385,28 +410,38 @@ def send_regression_report(data_path, estimator, estimator_name, email_to, usern
   plot_stats([rmse1, rmse2],["Training set = full", "Training set = only_similar"], estimator_name, dt)
   send_email(email_to, username, password, "smtp.gmail.com", 587, report , subject="Regression report", files=img_names)
 
+def print_usage_and_exit():
+  """
+  Called when the script is called with the wrong arguments. Just print the desired usage and exit with -1.
+  """
+  print "Usage: python visualize_station <data_path> <station_ID>"
+  print "The data_path variable should be the relative path to the folder containing your dataset"
+  print "The station ID must be an integer describing the station ID, making sure that there is such a station in the dataset provided"
+  sys.exit(-1)
+
 
 if __name__ == "__main__":
-  data_path = "../pybikes-test-data/test_folders/DC_test-3/"
+  if len(sys.argv) is not 3:
+    print_usage_and_exit()
 
-  time_params = ['epoch', 'time_of_day_hours', 'day_of_week', 'day_of_month','month','time_of_day_minutes']
-  station_params = ['id', 'latitude', 'longitude', 'altitude']
-  weather_params = ['TemperatureC', 'HourlyPrecipMM', 'Conditions']
+  try:
+    data_path = sys.argv[1]
+    station_ID = (int) (sys.argv[2])
+    time_params = ['epoch', 'time_of_day_hours', 'day_of_week', 'day_of_month','month','time_of_day_minutes']
+    station_params = ['id', 'latitude', 'longitude', 'altitude']
+    weather_params = ['TemperatureC', 'HourlyPrecipMM', 'Conditions']
+    data, features = get_bikeshare_data(time_params, station_params, weather_params, data_path, regression_mode=True)
+  except:
+    print_usage_and_exit()
 
-  data, features = get_bikeshare_data(time_params, station_params, weather_params, data_path, regression_mode=True)
+
   y = get_target(data, len(features) - 1)
   X = prune_target_col(data, len(features) - 1)
 
   features = rename_features(features)
-  print "Feature set:"
-  print [(feature + "\n") for feature in features]
   stations = init_racks(data_path)
 
-  #estimators = [(tree.DecisionTreeRegressor(), "DecisionTreeRegressor")]#(ensemble.AdaBoostRegressor(n_estimators=30, base_estimator=tree.DecisionTreeRegressor()), "AdaBoostRegressor (30 estimators)"), (ensemble.RandomForestRegressor(n_estimators=50, n_jobs = -1, verbose=2),"RandomForestRegressor (50 estimators)")]
-  #estimators = [(ensemble.AdaBoostRegressor(n_estimators=i, base_estimator=tree.DecisionTreeRegressor()), "AdaBoostRegressor (%s decision trees)"%i) for i in range(15,55,5)]
-  #estimators = [(ensemble.RandomForestRegressor(n_estimators=i, n_jobs = -1, verbose=2), "Random forest (%s estimators)"%i) for i in range(40,55,5)]
-  #estimators = [(ensemble.RandomForestRegressor(n_estimators=30, oob_score=True, verbose=2, n_jobs=6),"RandomForestRegressor (30 estimators)")]
-  estimators = [(tree.DecisionTreeRegressor(), "DecisionTreeRegressor")]#(ensemble.RandomForestRegressor(n_estimators=50, n_jobs=6, verbose=2, oob_score=True),"RandomForestRegressor (50 estimators)")]
+  estimators = [(tree.DecisionTreeRegressor(), "DecisionTreeRegressor")] 
 
   for est, est_name in estimators:
     run_prediction_for_station(est, est_name, X,y, features, stations, 59, 80)

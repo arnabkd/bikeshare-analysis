@@ -309,22 +309,13 @@ def get_bikeshare_data(time_features, station_features, weather_features, direct
   part_size = len(bikeshare_files) / 10
   i = 0
   features = time_features + station_features+ weather_features + ["percentage"]
-  if 'HourlyPrecipMM' in features:
-    rain_col = features.index('HourlyPrecipMM')
-  rainy_obs = 0
-  non_rainy_obs = 0
+
   for bikeshare_file in bikeshare_files:
     fo = open(bikeshare_file, "r")
     content = json.loads(fo.read())
     fo.close()
     try:
       observation = create_obs(time_features, station_features, weather_features, content, stations_info, regression_mode, filter_rack_by_ID)
-      rain_level = observation[0][rain_col]
-      if rain_level > 0:
-        #print rain_level
-        rainy_obs += 1
-      else:
-        non_rainy_obs += 1
       
       obs += observation
     except Exception as e:
@@ -336,7 +327,6 @@ def get_bikeshare_data(time_features, station_features, weather_features, direct
     if i%part_size == 0:
       print "Read %s files out of %s" %(i, len(bikeshare_files))
   
-  print "non_rainy_obs: %s, rainy_obs: %s" %(non_rainy_obs, rainy_obs)
   return np.array(obs), features
 
 
