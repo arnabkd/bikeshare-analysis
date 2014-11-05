@@ -444,4 +444,6 @@ if __name__ == "__main__":
   estimators = [(tree.DecisionTreeRegressor(), "DecisionTreeRegressor")] 
 
   for est, est_name in estimators:
-    run_prediction_for_station(est, est_name, X,y, features, stations, 59, 80)
+    #Tweak the split_ratio variable to change the train-test split
+    split_ratio = 80
+    run_prediction_for_station(est, est_name, X,y, features, stations, 59, split_ratio)
