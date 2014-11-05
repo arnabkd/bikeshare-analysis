@@ -16,7 +16,7 @@ def send_email(email_to, username, password, smtpserv, port, report, subject=Non
   sender = username
   msg = MIMEMultipart()
   msg.attach(MIMEText(report))
-  msg['Subject'] = ('Classification report generated at %s' % current_time) if subject is None else subject
+  msg['Subject'] = ('Report generated at %s' % current_time) if subject is None else subject
   msg['From'] = sender
   msg['To'] = email_to
 
