@@ -441,7 +441,10 @@ if __name__ == "__main__":
   features = rename_features(features)
   stations = init_racks(data_path)
 
-  estimators = [(tree.DecisionTreeRegressor(), "DecisionTreeRegressor")] 
+  estimators = [(tree.DecisionTreeRegressor(), "DecisionTreeRegressor")]
+  
+  #Uncomment for deeper analysis
+  #estimators = [(tree.DecisionTreeRegressor(), "DecisionTreeRegressor"), (ensemble.RandomForestRegressor(n_jobs=-1, n_estimators=30), "Random Forest Regressor (n=30)"), (ensemble.AdaBoostRegressor(base_estimator=tree.DecisionTreeRegressor(),n_estimators=30), "Ada Boost Regressor (n=30)")]
 
   for est, est_name in estimators:
     #Tweak the split_ratio variable to change the train-test split
